@@ -38,6 +38,8 @@ with open(demands_csv, newline="", encoding="utf-8") as f:
     for row in csv.DictReader(f):
         if filter_uid and row.get("user_id") != filter_uid:
             continue
+        if row.get("状态") != "求购中":
+            continue
         d_title = row["书名"]
         hits = [b for k, bl in book_map.items() for b in bl if d_title in k or k in d_title]
         entry = {"demand_title": d_title, "demand_contact": row["联系方式"], "demand_status": row.get("状态", "")}

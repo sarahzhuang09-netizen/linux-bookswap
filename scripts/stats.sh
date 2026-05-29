@@ -16,6 +16,8 @@ prices = []
 if os.path.exists(books_csv):
     with open(books_csv, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
+            if row.get("状态") != "出售":
+                continue
             try: prices.append(float(row.get("价格") or row.get("price", 0)))
             except: pass
 
@@ -24,11 +26,11 @@ avg_price  = round(sum(prices)/b_total, 1) if prices else 0
 max_price  = max(prices) if prices else 0
 min_price  = min(prices) if prices else 0
 
-# 需求统计
+# 需求统计（只统计求购中）
 d_total = 0
 if os.path.exists(demands_csv):
     with open(demands_csv, newline="", encoding="utf-8") as f:
-        d_total = sum(1 for _ in csv.DictReader(f))
+        d_total = sum(1 for row in csv.DictReader(f) if row.get("状态") == "求购中")
 
 # 日志统计
 log_total = add_count = del_count = match_count = 0

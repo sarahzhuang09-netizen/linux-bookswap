@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>书巢 · 校园二手书交换平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f13; --surface: #16181f; --surface2: #1e2029;
+    --border: #2a2d3a; --accent: #e8c97e; --accent2: #5b8ef0;
+    --accent3: #6ee7b7; --text: #e4e6f0; --muted: #6b7280;
+    --danger: #f87171; --success: #6ee7b7; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans SC', sans-serif; font-weight: 300; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(91,142,240,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(232,201,126,0.05) 0%, transparent 50%);
+  }
+
+  /* ── 登录/注册浮层 ── */
+  #auth-screen {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(10,11,15,0.97);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 44px 52px; width: 420px;
+    animation: fadeUp .35s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+
+  .auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .auth-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #c9a84c);
+    border-radius: 10px; display: grid; place-items: center; font-size: 18px;
+  }
+  .auth-logo-text { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+
+  .auth-tabs { display: flex; gap: 0; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 10px; font-size: 14px; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; margin-bottom: -1px;
+  }
+  .auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .auth-form { display: none; }
+  .auth-form.active { display: block; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 7px; letter-spacing: .5px; }
+  .form-group input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif; font-size: 14px; outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .form-group input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(91,142,240,0.12); }
+  .form-group input::placeholder { color: var(--muted); font-size: 13px; }
+
+  .auth-err { font-size: 13px; color: var(--danger); min-height: 20px; margin-bottom: 14px; display: flex; align-items: center; gap: 5px; }
+
+  .btn-auth {
+    width: 100%; background: linear-gradient(135deg, var(--accent), #c9a84c);
+    color: #1a1205; font-family: 'Noto Sans SC', sans-serif;
+    font-size: 15px; font-weight: 600; border: none; border-radius: 12px;
+    padding: 13px; cursor: pointer; transition: all .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-auth:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(232,201,126,0.3); }
+  .btn-auth:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(14,15,19,0.88); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 64px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: 'Noto Serif SC', serif; font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #c9a84c); border-radius: 8px; display: grid; place-items: center; font-size: 16px; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: transparent; border: none; color: var(--muted); font-family: 'Noto Sans SC', sans-serif; font-size: 14px; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all .2s; }
+  nav button:hover { color: var(--text); background: var(--surface2); }
+  nav button.active { color: var(--accent); background: rgba(232,201,126,0.1); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .user-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px; font-size: 13px;
+  }
+  .user-chip .uid { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  .btn-logout-top {
+    font-size: 12px; color: var(--muted); background: none;
+    border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px;
+    cursor: pointer; transition: all .2s; font-family: 'Noto Sans SC', sans-serif;
+  }
+  .btn-logout-top:hover { color: var(--danger); border-color: var(--danger); }
+  .admin-link { font-size: 12px; color: var(--muted); text-decoration: none; padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; transition: all .2s; }
+  .admin-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── Main ── */
+  main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeUp .3s ease; }
+
+  /* ── Hero ── */
+  .hero { text-align: center; padding: 60px 0 48px; }
+  .hero h1 { font-family: 'Noto Serif SC', serif; font-size: clamp(32px, 5vw, 54px); font-weight: 700; line-height: 1.2; margin-bottom: 16px; background: linear-gradient(135deg, var(--accent) 0%, #fff 50%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { color: var(--muted); font-size: 16px; line-height: 1.8; }
+
+  /* ── Stats row ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; transition: border-color .2s; }
+  .stat-card:hover { border-color: rgba(232,201,126,0.3); }
+  .stat-label { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 500; color: var(--accent); }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Section header ── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-title { font-family: 'Noto Serif SC', serif; font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; display: inline-block; width: 3px; height: 20px; background: var(--accent); border-radius: 2px; }
+
+  /* ── Search ── */
+  .search-box { display: flex; gap: 10px; margin-bottom: 24px; }
+  .search-box input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; color: var(--text); font-family: 'Noto Sans SC', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; }
+  .search-box input:focus { border-color: var(--accent2); }
+  .search-box input::placeholder { color: var(--muted); }
+
+  /* ── Book card ── */
+  .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .book-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; transition: all .25s; position: relative; overflow: hidden; }
+  .book-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transform: scaleX(0); transform-origin: left; transition: transform .3s; }
+  .book-card:hover { border-color: rgba(91,142,240,0.3); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+  .book-card:hover::after { transform: scaleX(1); }
+  .book-title { font-family: 'Noto Serif SC', serif; font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .book-author { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .book-footer { display: flex; align-items: center; justify-content: space-between; }
+  .book-price { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--accent); font-weight: 500; }
+  .book-price span { font-size: 13px; color: var(--muted); }
+  .book-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); background: var(--surface2); padding: 6px 12px; border-radius: 20px; }
+  .book-date { font-size: 11px; color: var(--muted); margin-top: 12px; font-family: 'JetBrains Mono', monospace; }
+  .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; }
+  .tag-selling { background: rgba(110,231,183,0.1); color: var(--accent3); border: 1px solid rgba(110,231,183,0.2); }
+  .tag-sold { background: rgba(107,114,128,0.15); color: var(--muted); border: 1px solid rgba(107,114,128,0.2); }
+
+  /* ── Two-column layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+
+  /* ── Form card ── */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 36px; }
+  .form-title { font-family: 'Noto Serif SC', serif; font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .form-desc { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+
+  /* ── My list card ── */
+  .my-list-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .my-list-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .my-list-title { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .my-list-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; }
+
+  /* ── My item row ── */
+  .my-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid rgba(42,45,58,0.5);
+    transition: background .15s;
+  }
+  .my-item:last-child { border-bottom: none; }
+  .my-item:hover { background: rgba(30,32,41,0.5); }
+  .my-item-left { flex: 1; min-width: 0; }
+  .my-item-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .my-item-meta { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .my-item-price { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--accent); margin: 0 16px; flex-shrink: 0; }
+  .my-item-status { font-size: 11px; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+  .status-active { background: rgba(110,231,183,0.1); color: var(--accent3); border: 1px solid rgba(110,231,183,0.2); }
+  .status-done { background: rgba(107,114,128,0.1); color: var(--muted); border: 1px solid rgba(107,114,128,0.2); }
+
+  .btn-mark {
+    font-size: 11px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif; border: none; margin-left: 10px;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .btn-mark-sold { background: rgba(232,201,126,0.15); color: var(--accent); border: 1px solid rgba(232,201,126,0.25); }
+  .btn-mark-sold:hover { background: rgba(232,201,126,0.25); }
+  .btn-mark-bought { background: rgba(91,142,240,0.15); color: var(--accent2); border: 1px solid rgba(91,142,240,0.25); }
+  .btn-mark-bought:hover { background: rgba(91,142,240,0.25); }
+
+  /* ── Demand list ── */
+  .demand-list { display: flex; flex-direction: column; gap: 10px; }
+  .demand-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .demand-item:hover { border-color: rgba(110,231,183,0.25); }
+  .demand-left { display: flex; align-items: center; gap: 12px; }
+  .demand-icon { width: 36px; height: 36px; background: rgba(110,231,183,0.1); border-radius: 9px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+  .demand-title-text { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .demand-meta { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── Match cards ── */
+  .match-results { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+  .match-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .match-header { padding: 14px 22px; background: var(--surface2); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+  .match-header.success { border-left: 3px solid var(--accent3); color: var(--accent3); }
+  .match-header.fail { border-left: 3px solid var(--danger); color: var(--danger); }
+  .match-body { padding: 14px 22px; }
+  .match-row { display: flex; gap: 12px; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  .match-row strong { color: var(--text); }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border: none; border-radius: 10px; font-family: 'Noto Sans SC', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent2), #3a6fd8); color: white; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(91,142,240,0.4); }
+  .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a84c); color: #1a1205; font-weight: 600; }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,201,126,0.4); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: rgba(228,230,240,0.3); }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; z-index: 9999; transform: translateY(20px); opacity: 0; transition: all .3s; max-width: 300px; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--accent3); }
+  #toast.error   { border-color: var(--danger); }
+
+  /* ── Empty ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty p { font-size: 14px; }
+
+  /* ── Skeleton ── */
+  .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .skel-card { height: 160px; border-radius: var(--radius); }
+
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+    header { padding: 0 16px; }
+    main { padding: 24px 16px 60px; }
+    .stats-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 登录/注册浮层 ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📚</div>
+      <div class="auth-logo-text">书巢</div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')">登录</div>
+      <div class="auth-tab" onclick="switchAuth('register')">注册</div>
+    </div>
+
+    <!-- 登录表单 -->
+    <div id="auth-login" class="auth-form active">
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="l-username" placeholder="请输入用户名" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="l-password" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-err" id="l-err"></div>
+      <button class="btn-auth" id="l-btn" onclick="doLogin()">登录 →</button>
+    </div>
+
+    <!-- 注册表单 -->
+    <div id="auth-register" class="auth-form">
+      <div class="form-group">
+        <label>用户名 *</label>
+        <input type="text" id="r-username" placeholder="设置你的用户名">
+      </div>
+      <div class="form-group">
+        <label>联系方式 * <span style="color:var(--muted);font-weight:300">（手机号或微信号）</span></label>
+        <input type="text" id="r-contact" placeholder="其他人通过此联系你">
+      </div>
+      <div class="form-group">
+        <label>密码 *</label>
+        <input type="password" id="r-password" placeholder="至少 6 位">
+      </div>
+      <div class="auth-err" id="r-err"></div>
+      <button class="btn-auth" id="r-btn" onclick="doRegister()">注册并登录 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    书巢
+  </div>
+  <nav>
+    <button class="active" onclick="showPanel('home', this)">首页</button>
+    <button onclick="showPanel('browse', this)">浏览书籍</button>
+    <button onclick="showPanel('sell', this)">出售书籍</button>
+    <button onclick="showPanel('want', this)">登记求购</button>
+    <button onclick="showPanel('match', this)">查找匹配</button>
+  </nav>
+  <div class="header-right">
+    <div class="user-chip">
+      <span id="hdr-username">—</span>
+      <span class="uid" id="hdr-uid">—</span>
+    </div>
+    <button class="btn-logout-top" onclick="doLogout()">退出</button>
+    <a href="/admin" class="admin-link">管理员 →</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- 首页 -->
+  <div id="panel-home" class="panel active">
+    <div class="hero">
+      <h1>让好书流动起来</h1>
+      <p>校园二手书交换平台 · 出售闲置 · 找到所需 · 与同学直接交流</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">在售书籍</div>
+        <div class="stat-value" id="stat-books">—</div>
+        <div class="stat-sub">本书籍等待新主人</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">求购需求</div>
+        <div class="stat-value" id="stat-demands">—</div>
+        <div class="stat-sub">条需求等待匹配</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">平均价格</div>
+        <div class="stat-value" id="stat-avg">—</div>
+        <div class="stat-sub">元 · 比新书便宜多了</div>
+      </div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">最新上架</div>
+      <button class="btn btn-ghost" style="font-size:13px;padding:8px 16px" onclick="showPanel('browse', null)">查看全部</button>
+    </div>
+    <div class="books-grid" id="home-books-grid">
+      <div class="skeleton skel-card"></div>
+      <div class="skeleton skel-card"></div>
+      <div class="skeleton skel-card"></div>
+    </div>
+  </div>
+
+  <!-- 浏览书籍 -->
+  <div id="panel-browse" class="panel">
+    <div class="section-header" style="margin-bottom:20px">
+      <div class="section-title">所有在售书籍</div>
+      <span id="browse-count" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="搜索书名或作者…" oninput="filterBooks()">
+    </div>
+    <div class="books-grid" id="browse-grid"></div>
+  </div>
+
+  <!-- 出售书籍 -->
+  <div id="panel-sell" class="panel">
+    <div class="two-col">
+      <!-- 左：发布表单 -->
+      <div class="form-card">
+        <div class="form-title">出售书籍</div>
+        <div class="form-desc">填写你想出售的书籍信息，其他同学可以联系你购买。</div>
+        <div class="form-group">
+          <label>书名 *</label>
+          <input type="text" id="sell-title" placeholder="例：线性代数">
+        </div>
+        <div class="form-group">
+          <label>作者 *</label>
+          <input type="text" id="sell-author" placeholder="例：Gilbert Strang">
+        </div>
+        <div class="form-group">
+          <label>定价（元）*</label>
+          <input type="number" id="sell-price" placeholder="例：25" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>联系方式 *</label>
+          <input type="text" id="sell-contact" placeholder="手机号或微信号" id="sell-contact">
+        </div>
+        <button class="btn btn-gold" onclick="submitSell()" style="width:100%;justify-content:center;margin-top:4px">
+          📤 发布出售信息
+        </button>
+      </div>
+
+      <!-- 右：我的在售列表 -->
+      <div class="my-list-card">
+        <div class="my-list-header">
+          <div class="my-list-title">📗 我的出售记录</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="my-list-count" id="my-books-count">0</span>
+            <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadMyBooks()">↺</button>
+          </div>
+        </div>
+        <div id="my-books-list">
+          <div class="empty"><div class="empty-icon">📭</div><p>暂无出售记录</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登记求购 -->
+  <div id="panel-want" class="panel">
+    <div class="two-col">
+      <!-- 左：表单 + 全部需求 -->
+      <div>
+        <div class="form-card" style="margin-bottom:24px">
+          <div class="form-title">登记求购需求</div>
+          <div class="form-desc">告诉我们你想要哪本书，当有同学出售时会帮你匹配。</div>
+          <div class="form-group">
+            <label>想要的书名 *</label>
+            <input type="text" id="want-title" placeholder="例：数据结构">
+          </div>
+          <div class="form-group">
+            <label>你的联系方式 *</label>
+            <input type="text" id="want-contact" placeholder="手机号或微信号">
+          </div>
+          <button class="btn btn-primary" onclick="submitWant()" style="width:100%;justify-content:center;margin-top:4px">
+            🔔 提交求购需求
+          </button>
+        </div>
+
+        <div>
+          <div class="section-title" style="margin-bottom:14px;font-size:16px">所有求购需求</div>
+          <div class="demand-list" id="demand-list">
+            <div class="skeleton" style="height:56px;border-radius:10px"></div>
+            <div class="skeleton" style="height:56px;border-radius:10px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：我的求购记录 -->
+      <div class="my-list-card">
+        <div class="my-list-header">
+          <div class="my-list-title">🔍 我的求购记录</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="my-list-count" id="my-demands-count">0</span>
+            <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadMyDemands()">↺</button>
+          </div>
+        </div>
+        <div id="my-demands-list">
+          <div class="empty"><div class="empty-icon">📭</div><p>暂无求购记录</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查找匹配 -->
+  <div id="panel-match" class="panel">
+    <div class="section-header">
+      <div class="section-title">我的书籍匹配</div>
+      <button class="btn btn-primary" onclick="runMatch()" id="match-btn">⚡ 查看匹配结果</button>
+    </div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:8px;line-height:1.7">
+      只显示你的求购需求对应的匹配结果。匹配成功后可直接联系出售方。
+    </p>
+    <div id="match-results" class="match-results"></div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+let currentUser = null;
+let allBooks = [];
+
+// ── 工具 ──────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── 登录/注册 ──────────────────────────────────────────────
+function switchAuth(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
+  });
+  document.getElementById('auth-login').classList.toggle('active', tab==='login');
+  document.getElementById('auth-register').classList.toggle('active', tab==='register');
+}
+
+async function doLogin() {
+  const username = document.getElementById('l-username').value.trim();
+  const password = document.getElementById('l-password').value.trim();
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('l-err');
+  if (!username || !password) { err.textContent = '请填写用户名和密码'; return; }
+  btn.disabled = true; btn.textContent = '登录中…'; err.textContent = '';
+  try {
+    const res = await fetch('/api/user/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    }).then(r=>r.json());
+    if (res.ok) { onLoginSuccess(res); }
+    else { err.textContent = '⚠ ' + res.msg; }
+  } catch { err.textContent = '⚠ 无法连接服务器'; }
+  btn.disabled = false; btn.textContent = '登录 →';
+}
+
+async function doRegister() {
+  const username = document.getElementById('r-username').value.trim();
+  const contact  = document.getElementById('r-contact').value.trim();
+  const password = document.getElementById('r-password').value.trim();
+  const btn = document.getElementById('r-btn');
+  const err = document.getElementById('r-err');
+  if (!username || !contact || !password) { err.textContent = '请填写所有字段'; return; }
+  if (password.length < 6) { err.textContent = '密码至少 6 位'; return; }
+  btn.disabled = true; btn.textContent = '注册中…'; err.textContent = '';
+  try {
+    const res = await fetch('/api/user/register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, contact, password})
+    }).then(r=>r.json());
+    if (res.ok) { onLoginSuccess(res); }
+    else { err.textContent = '⚠ ' + res.msg; }
+  } catch { err.textContent = '⚠ 无法连接服务器'; }
+  btn.disabled = false; btn.textContent = '注册并登录 →';
+}
+
+function onLoginSuccess(user) {
+  currentUser = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('hdr-username').textContent = user.username;
+  document.getElementById('hdr-uid').textContent = '#' + user.user_id;
+  // 预填联系方式
+  const sc = document.getElementById('sell-contact');
+  if (sc && !sc.value) sc.value = user.contact;
+  const wc = document.getElementById('want-contact');
+  if (wc && !wc.value) wc.value = user.contact;
+  loadHome();
+}
+
+async function doLogout() {
+  await fetch('/api/user/logout', {method:'POST'});
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('hdr-username').textContent = '—';
+  document.getElementById('hdr-uid').textContent = '—';
+}
+
+// ── 导航 ──────────────────────────────────────────────────
+function showPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'home')   loadHome();
+  if (name === 'browse') loadBrowse();
+  if (name === 'sell')   loadMyBooks();
+  if (name === 'want')   { loadDemands(); loadMyDemands(); }
+  if (name === 'match')  runMatch();
+}
+
+// ── 首页 ──────────────────────────────────────────────────
+async function loadHome() {
+  const [statsRes, booksRes] = await Promise.all([
+    fetch('/api/stats', {cache:'no-store'}).then(r=>r.json()).catch(()=>null),
+    fetch('/api/books', {cache:'no-store'}).then(r=>r.json()).catch(()=>null),
+  ]);
+  if (statsRes?.ok) {
+    document.getElementById('stat-books').textContent   = statsRes.books.total;
+    document.getElementById('stat-demands').textContent = statsRes.demands.total;
+    document.getElementById('stat-avg').textContent     = statsRes.books.avg_price || '—';
+  }
+  if (booksRes?.ok) {
+    allBooks = booksRes.books;
+    const selling = booksRes.books.filter(b => b.status === '出售').slice(-3).reverse();
+    const grid = document.getElementById('home-books-grid');
+    grid.innerHTML = selling.length ? selling.map(bookCard).join('') :
+      '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>暂无书籍</p></div>';
+  }
+}
+
+// ── 浏览书籍 ──────────────────────────────────────────────
+async function loadBrowse() {
+  const res = await fetch('/api/books', {cache:'no-store'}).then(r=>r.json()).catch(()=>null);
+  if (res?.ok) { allBooks = res.books; renderBrowse(allBooks.filter(b=>b.status==='出售')); }
+}
+
+function renderBrowse(books) {
+  const grid = document.getElementById('browse-grid');
+  document.getElementById('browse-count').textContent = `共 ${books.length} 本`;
+  grid.innerHTML = books.length ? books.map(bookCard).join('') :
+    '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>暂无在售书籍</p></div>';
+}
+
+function filterBooks() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const src = allBooks.filter(b=>b.status==='出售');
+  renderBrowse(q ? src.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)) : src);
+}
+
+function bookCard(b) {
+  return `<div class="book-card" data-title="${esc(b.title)}">
+    <div class="tag tag-selling">📗 出售中</div>
+    <div class="book-title">${esc(b.title)}</div>
+    <div class="book-author">${esc(b.author)}</div>
+    <div class="book-footer">
+      <div class="book-price">¥${esc(b.price)}<span> 元</span></div>
+      <div class="book-contact">📱 ${esc(b.contact)}</div>
+    </div>
+    <div class="book-date">登记于 ${esc(b.date)}</div>
+  </div>`;
+}
+
+// ── 出售：发布 ────────────────────────────────────────────
+async function submitSell() {
+  const title   = document.getElementById('sell-title').value.trim();
+  const author  = document.getElementById('sell-author').value.trim();
+  const price   = document.getElementById('sell-price').value.trim();
+  const contact = document.getElementById('sell-contact').value.trim();
+  if (!title||!author||!price||!contact) { toast('请填写所有必填项','error'); return; }
+  const res = await fetch('/api/books', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title,author,price,contact})
+  }).then(r=>r.json()).catch(()=>null);
+  if (res?.ok) {
+    toast(res.msg);
+    ['sell-title','sell-author','sell-price'].forEach(id => document.getElementById(id).value='');
+    loadMyBooks();
+  } else { toast(res?.msg||'发布失败','error'); }
+}
+
+// ── 出售：我的列表 ────────────────────────────────────────
+async function loadMyBooks() {
+  const res = await fetch('/api/books/mine', {cache:'no-store'}).then(r=>r.json()).catch(()=>null);
+  const container = document.getElementById('my-books-list');
+  if (!res?.ok || !res.books.length) {
+    document.getElementById('my-books-count').textContent = '0';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>暂无出售记录</p></div>';
+    return;
+  }
+  document.getElementById('my-books-count').textContent = res.books.length;
+  container.innerHTML = res.books.map(b => {
+    const isDone = b.status === '已出售';
+    return `<div class="my-item">
+      <div class="my-item-left">
+        <div class="my-item-title">${esc(b.title)}</div>
+        <div class="my-item-meta">${esc(b.author)} · ${esc(b.date)}</div>
+      </div>
+      <div class="my-item-price">¥${esc(b.price)}</div>
+      <span class="my-item-status ${isDone?'status-done':'status-active'}">${isDone?'已出售':'出售中'}</span>
+      ${!isDone ? '<button class="btn-mark btn-mark-sold" onclick="markSold(\'' + b.title.replace(/'/g, "\\'") + '\', this)">标记已售</button>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function markSold(title, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  const res = await fetch('/api/books/' + encodeURIComponent(title) + '/sold', {method:'POST'}).then(r=>r.json()).catch(()=>null);
+  if (res?.ok) {
+    toast(res.msg);
+    // 1. 当前行：状态标签变"已出售"，移除按钮
+    const row = btn.closest('.my-item');
+    if (row) {
+      const statusEl = row.querySelector('.my-item-status');
+      if (statusEl) { statusEl.textContent = '已出售'; statusEl.className = 'my-item-status status-done'; }
+      btn.remove();
+    }
+    // 2. 浏览书籍网格：删除对应卡片（用 data-title 精确匹配）
+    document.querySelectorAll('#browse-grid .book-card[data-title="' + title.replace(/"/g,'&quot;') + '"], #home-books-grid .book-card[data-title="' + title.replace(/"/g,'&quot;') + '"]').forEach(card => {
+      card.style.transition = 'opacity .3s, transform .3s';
+      card.style.opacity = '0'; card.style.transform = 'scale(0.95)';
+      setTimeout(() => { card.remove(); }, 300);
+    });
+    // 3. 同步 allBooks 缓存（供搜索过滤用）
+    const cached = allBooks.find(b => b.title === title);
+    if (cached) cached.status = '已出售';
+  } else {
+    toast(res?.msg||'操作失败','error');
+    btn.disabled = false; btn.textContent = '标记已售';
+  }
+}
+
+// ── 求购：公开列表 ─────────────────────────────────────────
+async function loadDemands() {
+  const res = await fetch('/api/demands', {cache:'no-store'}).then(r=>r.json()).catch(()=>null);
+  const list = document.getElementById('demand-list');
+  if (!res?.ok || !res.demands.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>暂无求购需求</p></div>';
+    return;
+  }
+  // 只展示求购中的
+  const active = res.demands.filter(d => d.status !== '已买到');
+  if (!active.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div><p>所有需求都已满足</p></div>';
+    return;
+  }
+  list.innerHTML = active.map(d => `
+    <div class="demand-item">
+      <div class="demand-left">
+        <div class="demand-icon">📖</div>
+        <div>
+          <div class="demand-title-text">${esc(d.title)}</div>
+          <div class="demand-meta">${esc(d.contact)} · ${esc(d.date)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── 求购：发布 ────────────────────────────────────────────
+async function submitWant() {
+  const title   = document.getElementById('want-title').value.trim();
+  const contact = document.getElementById('want-contact').value.trim();
+  if (!title||!contact) { toast('请填写书名和联系方式','error'); return; }
+  const res = await fetch('/api/demands', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title,contact})
+  }).then(r=>r.json()).catch(()=>null);
+  if (res?.ok) {
+    toast(res.msg);
+    document.getElementById('want-title').value = '';
+    loadDemands();
+    loadMyDemands();
+  } else { toast(res?.msg||'提交失败','error'); }
+}
+
+// ── 求购：我的记录 ────────────────────────────────────────
+async function loadMyDemands() {
+  const res = await fetch('/api/demands/mine', {cache:'no-store'}).then(r=>r.json()).catch(()=>null);
+  const container = document.getElementById('my-demands-list');
+  if (!res?.ok || !res.demands.length) {
+    document.getElementById('my-demands-count').textContent = '0';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>暂无求购记录</p></div>';
+    return;
+  }
+  document.getElementById('my-demands-count').textContent = res.demands.length;
+  container.innerHTML = res.demands.map(d => {
+    const isDone = d.status === '已买到';
+    return `<div class="my-item">
+      <div class="my-item-left">
+        <div class="my-item-title">${esc(d.title)}</div>
+        <div class="my-item-meta">${esc(d.contact)} · ${esc(d.date)}</div>
+      </div>
+      <span class="my-item-status ${isDone?'status-done':'status-active'}" style="margin-right:10px">${isDone?'已买到':'求购中'}</span>
+      ${!isDone ? '<button class="btn-mark btn-mark-bought" onclick="markBought(\'' + d.title.replace(/'/g, "\\'") + '\', this)">标记已买到</button>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function markBought(title, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  const res = await fetch('/api/demands/' + encodeURIComponent(title) + '/bought', {method:'POST'}).then(r=>r.json()).catch(()=>null);
+  if (res?.ok) {
+    toast(res.msg);
+    // 1. 立即更新"我的求购记录"行：状态标签变"已买到"，移除按钮
+    const row = btn.closest('.my-item');
+    if (row) {
+      const statusEl = row.querySelector('.my-item-status');
+      if (statusEl) {
+        statusEl.textContent = '已买到';
+        statusEl.className = 'my-item-status status-done';
+      }
+      btn.remove();
+    }
+    // 2. 立即从"所有求购需求"列表中删除该条（精确匹配书名）
+    document.querySelectorAll('#demand-list .demand-item').forEach(item => {
+      const titleEl = item.querySelector('.demand-title-text');
+      if (titleEl && titleEl.textContent.trim() === title) {
+        item.style.transition = 'opacity .3s, transform .3s';
+        item.style.opacity = '0';
+        item.style.transform = 'translateX(10px)';
+        setTimeout(() => {
+          item.remove();
+          const list = document.getElementById('demand-list');
+          if (list && !list.querySelector('.demand-item')) {
+            list.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div><p>所有需求都已满足</p></div>';
+          }
+        }, 300);
+      }
+    });
+    // 动画结束后重新加载，确保与服务器数据一致
+    setTimeout(() => { loadMyDemands(); }, 350);
+  } else {
+    toast(res?.msg||'操作失败','error');
+    btn.disabled = false; btn.textContent = '标记已买到';
+  }
+}
+
+// ── 匹配（只显示自己的）──────────────────────────────────
+async function runMatch() {
+  const btn = document.getElementById('match-btn');
+  btn.textContent = '查询中…'; btn.disabled = true;
+  const res = await fetch('/api/match/mine', {cache:'no-store'}).then(r=>r.json()).catch(()=>null);
+  btn.textContent = '⚡ 刷新匹配结果'; btn.disabled = false;
+
+  const container = document.getElementById('match-results');
+  if (!res?.ok) { toast('查询失败','error'); return; }
+
+  const total = res.matched.length + res.unmatched.length;
+  if (total === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>你还没有登记求购需求<br>前往「登记求购」添加后再来查看</p></div>';
+    return;
+  }
+
+  let html = `<div style="font-size:13px;color:var(--muted);padding:12px 16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:4px">
+    匹配成功 <span style="color:var(--accent3);font-weight:500">${res.matched.length}</span> 条 ·
+    暂无匹配 <span style="color:var(--danger);font-weight:500">${res.unmatched.length}</span> 条
+  </div>`;
+
+  for (const m of res.matched) {
+    const statusHint = m.demand_status === '已买到' ? '<span style="font-size:11px;color:var(--muted);margin-left:8px">（已买到）</span>' : '';
+    html += `<div class="match-card">
+      <div class="match-header success">✅ 匹配成功 — ${esc(m.demand_title)}${statusHint}</div>
+      <div class="match-body">
+        ${m.books.map(b=>`
+          <div class="match-row">出售方：<strong>${esc(b.contact)}</strong> &nbsp;「${esc(b.title)}」&nbsp; ¥${esc(b.price)} 元</div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  for (const u of res.unmatched) {
+    const statusHint = u.demand_status === '已买到' ? '<span style="font-size:11px;color:var(--muted);margin-left:8px">（已买到）</span>' : '';
+    html += `<div class="match-card">
+      <div class="match-header fail">❌ 暂无匹配 — ${esc(u.demand_title)}${statusHint}</div>
+      <div class="match-body">
+        <div class="match-row" style="color:var(--muted)">目前平台无此书在售，等待其他同学上架</div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── 初始化：检查登录状态 ──────────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('/api/user/me', {cache:'no-store'}).then(r=>r.json());
+    if (res.logged_in) { onLoginSuccess(res); }
+  } catch {}
+})();
+</script>
+</body>
+</html>

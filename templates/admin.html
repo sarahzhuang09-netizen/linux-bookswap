@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>书巢 · 管理员后台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #16181f;
+    --surface2: #1e2029;
+    --border: #2a2d3a;
+    --accent: #e8c97e;
+    --accent2: #5b8ef0;
+    --accent3: #6ee7b7;
+    --text: #e4e6f0;
+    --muted: #6b7280;
+    --danger: #f87171;
+    --success: #6ee7b7;
+    --warning: #fbbf24;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 10% 20%, rgba(232,201,126,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 80%, rgba(91,142,240,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── 登录屏 ── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 52px;
+    width: 420px;
+    animation: fadeUp .4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(232,201,126,0.1);
+    border: 1px solid rgba(232,201,126,0.25);
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .login-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .login-sub { font-size: 14px; color: var(--muted); margin-bottom: 36px; line-height: 1.6; }
+
+  .input-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 48px 14px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .input-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,201,126,0.1);
+  }
+
+  .input-wrap input::placeholder {
+    color: var(--muted);
+    letter-spacing: 0;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 14px;
+  }
+
+  .eye-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    transition: color .2s;
+  }
+  .eye-btn:hover { color: var(--accent); }
+
+  .login-err {
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 16px;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-login {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #c9a84c);
+    color: #1a1205;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(232,201,126,0.35); }
+  .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  .back-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* ── 主界面（登录后）── */
+  #admin-screen { display: none; }
+
+  /* ── Sidebar ── */
+  .layout {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  aside {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .sidebar-logo {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .logo-icon {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--accent), #c9a84c);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+  }
+
+  .admin-badge-small {
+    margin-top: 6px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  nav.side-nav {
+    padding: 16px 12px;
+    flex: 1;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 12px;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  .nav-section-label:first-child { margin-top: 0; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); background: rgba(232,201,126,0.1); }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-logout {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: all .2s;
+  }
+  .btn-logout:hover { color: var(--danger); border-color: var(--danger); background: rgba(248,113,113,0.05); }
+
+  /* ── 主内容 ── */
+  .main-content {
+    flex: 1;
+    padding: 32px 40px 60px;
+    overflow-x: hidden;
+  }
+
+  .page { display: none; animation: fadeUp .25s ease; }
+  .page.active { display: block; }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .page-sub { font-size: 14px; color: var(--muted); }
+
+  /* ── 统计卡片 ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    transition: border-color .2s, transform .2s;
+    cursor: default;
+  }
+  .stat-card:hover { border-color: rgba(232,201,126,0.25); transform: translateY(-1px); }
+
+  .stat-icon { font-size: 22px; margin-bottom: 12px; }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label { font-size: 12px; color: var(--muted); }
+
+  /* ── 表格 ── */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-toolbar-title {
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 10px;
+    color: var(--muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    text-align: left;
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(42,45,58,0.6);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(30,32,41,0.5); }
+
+  .td-mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); }
+
+  .td-price {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .status-tag.selling {
+    background: rgba(110,231,183,0.1);
+    color: var(--accent3);
+    border: 1px solid rgba(110,231,183,0.2);
+  }
+
+  .btn-del {
+    background: none;
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--danger);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: all .15s;
+  }
+  .btn-del:hover { background: rgba(248,113,113,0.1); border-color: var(--danger); }
+
+  /* ── 添加表单 ── */
+  .form-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+
+  .form-section-title {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 7px;
+  }
+
+  .form-group input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .form-group input:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(91,142,240,0.12);
+  }
+
+  .form-group input::placeholder { color: var(--muted); font-size: 13px; }
+
+  /* ── 按钮 ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent2), #3a6fd8);
+    color: white;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(91,142,240,0.35); }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--accent), #c9a84c);
+    color: #1a1205;
+    font-weight: 600;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(232,201,126,0.35); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: rgba(228,230,240,0.3); }
+
+  .btn-danger {
+    background: rgba(248,113,113,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+
+  /* ── 日志 ── */
+  .log-container {
+    background: #0b0c10;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    max-height: 480px;
+    overflow-y: auto;
+    color: #9ca3af;
+  }
+
+  .log-line { display: flex; gap: 12px; }
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-add { color: var(--accent3); }
+  .log-del { color: var(--danger); }
+  .log-match { color: var(--accent2); }
+  .log-report { color: var(--accent); }
+
+  /* ── 报告输出 ── */
+  .report-output {
+    background: #0b0c10;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: #c9d1d9;
+    max-height: 480px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  /* ── 匹配结果 ── */
+  .match-results { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+
+  .match-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .match-header {
+    padding: 14px 20px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .match-header.success { border-left: 3px solid var(--accent3); color: var(--accent3); }
+  .match-header.fail { border-left: 3px solid var(--danger); color: var(--danger); }
+  .match-body { padding: 14px 20px; }
+  .match-row { display: flex; gap: 12px; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  .match-row strong { color: var(--text); }
+
+  /* ── 需求表格 ── */
+  .demand-row:hover td { background: rgba(30,32,41,0.5); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 14px;
+    z-index: 9999;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all .3s;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--accent3); }
+  #toast.error { border-color: var(--danger); }
+  #toast.info { border-color: var(--accent2); }
+
+  /* ── 空状态 ── */
+  .empty-row td {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ── 确认对话框 ── */
+  #confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #confirm-overlay.show { display: flex; }
+
+  .confirm-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 36px;
+    width: 360px;
+    animation: fadeUp .2s ease;
+  }
+
+  .confirm-title { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .confirm-desc { font-size: 14px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .main-content { padding: 24px 20px 48px; }
+    aside { width: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 登录屏 -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-badge">🔐 管理员专区</div>
+    <div class="login-title">后台管理系统</div>
+    <div class="login-sub">书巢 · 校园二手书交换平台<br>请输入管理员密码以继续</div>
+    <div class="input-wrap">
+      <input type="password" id="pwd-input" placeholder="请输入管理员密码" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="eye-btn" onclick="togglePwd()" title="显示/隐藏密码">👁</button>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">
+      <span>进入后台</span> →
+    </button>
+    <a href="/" class="back-link">← 返回用户端</a>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="admin-screen">
+  <div class="layout">
+
+    <!-- 侧边栏 -->
+    <aside>
+      <div class="sidebar-logo">
+        <div class="logo-row">
+          <div class="logo-icon">📚</div>
+          书巢
+        </div>
+        <div class="admin-badge-small">Admin Dashboard</div>
+      </div>
+      <nav class="side-nav">
+        <div class="nav-section-label">概览</div>
+        <button class="nav-item active" onclick="switchPage('overview')">
+          <span class="nav-icon">📊</span> 数据概览
+        </button>
+
+        <div class="nav-section-label">书籍管理</div>
+        <button class="nav-item" onclick="switchPage('books')">
+          <span class="nav-icon">📗</span> 在售书籍
+        </button>
+        <button class="nav-item" onclick="switchPage('add-book')">
+          <span class="nav-icon">➕</span> 添加书籍
+        </button>
+
+        <div class="nav-section-label">需求与匹配</div>
+        <button class="nav-item" onclick="switchPage('demands')">
+          <span class="nav-icon">🔍</span> 求购需求
+        </button>
+        <button class="nav-item" onclick="switchPage('match')">
+          <span class="nav-icon">⚡</span> 执行匹配
+        </button>
+
+        <div class="nav-section-label">系统</div>
+        <button class="nav-item" onclick="switchPage('report')">
+          <span class="nav-icon">📄</span> 每日报告
+        </button>
+        <button class="nav-item" onclick="switchPage('logs')">
+          <span class="nav-icon">🗂</span> 操作日志
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="doLogout()">
+          <span>⬅</span> 退出登录
+        </button>
+      </div>
+    </aside>
+
+    <!-- 内容区 -->
+    <div class="main-content">
+
+      <!-- 数据概览 -->
+      <div id="page-overview" class="page active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">数据概览</div>
+            <div class="page-sub">平台实时运营数据</div>
+          </div>
+          <button class="btn btn-ghost" onclick="loadOverview()">↺ 刷新</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-value" id="ov-books">—</div>
+            <div class="stat-label">在售书籍（本）</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value" id="ov-demands">—</div>
+            <div class="stat-label">求购需求（条）</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="ov-avg">—</div>
+            <div class="stat-label">平均价格（元）</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔧</div>
+            <div class="stat-value" id="ov-ops">—</div>
+            <div class="stat-label">累计操作（次）</div>
+          </div>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value" id="ov-max">—</div>
+            <div class="stat-label">最高定价（元）</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📉</div>
+            <div class="stat-value" id="ov-min">—</div>
+            <div class="stat-label">最低定价（元）</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔁</div>
+            <div class="stat-value" id="ov-match">—</div>
+            <div class="stat-label">执行匹配（次）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 在售书籍 -->
+      <div id="page-books" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">在售书籍</div>
+            <div class="page-sub">管理所有上架书籍，可删除下架</div>
+          </div>
+          <button class="btn btn-primary" onclick="switchPage('add-book')">＋ 添加书籍</button>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-toolbar-title">
+              书籍列表 <span class="count-badge" id="books-count">0</span>
+            </div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:7px 14px" onclick="loadBooks()">↺ 刷新</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>书名</th>
+                <th>作者</th>
+                <th>价格</th>
+                <th>联系方式</th>
+                <th>状态</th>
+                <th>登记时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="books-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 添加书籍 -->
+      <div id="page-add-book" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">添加书籍</div>
+            <div class="page-sub">管理员代为录入出售书籍信息</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">📗 新书信息</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>书名 *</label>
+              <input type="text" id="ab-title" placeholder="例：线性代数">
+            </div>
+            <div class="form-group">
+              <label>作者 *</label>
+              <input type="text" id="ab-author" placeholder="例：Gilbert Strang">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>定价（元）*</label>
+              <input type="number" id="ab-price" placeholder="例：25" min="0" step="0.5">
+            </div>
+            <div class="form-group">
+              <label>卖家联系方式 *</label>
+              <input type="text" id="ab-contact" placeholder="手机号或微信号">
+            </div>
+          </div>
+          <button class="btn btn-gold" onclick="submitBook()">📤 确认添加</button>
+        </div>
+      </div>
+
+      <!-- 求购需求 -->
+      <div id="page-demands" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">求购需求</div>
+            <div class="page-sub">所有用户登记的求购记录</div>
+          </div>
+          <button class="btn btn-ghost" onclick="loadDemands()">↺ 刷新</button>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-toolbar-title">
+              需求列表 <span class="count-badge" id="demands-count">0</span>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>想要的书名</th>
+                <th>联系方式</th>
+                <th>登记时间</th>
+              </tr>
+            </thead>
+            <tbody id="demands-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 匹配 -->
+      <div id="page-match" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">执行匹配</div>
+            <div class="page-sub">将求购需求与在售书籍进行自动匹配</div>
+          </div>
+          <button class="btn btn-primary" id="match-btn" onclick="runMatch()">⚡ 开始匹配</button>
+        </div>
+        <div id="match-results" class="match-results"></div>
+      </div>
+
+      <!-- 每日报告 -->
+      <div id="page-report" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">每日报告</div>
+            <div class="page-sub">生成今日平台运营摘要，同时保存到 reports/ 目录</div>
+          </div>
+          <button class="btn btn-gold" onclick="generateReport()">📄 生成今日报告</button>
+        </div>
+        <pre id="report-output" class="report-output"></pre>
+      </div>
+
+      <!-- 操作日志 -->
+      <div id="page-logs" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">操作日志</div>
+            <div class="page-sub">最近 100 条系统操作记录（最新在前）</div>
+          </div>
+          <button class="btn btn-ghost" onclick="loadLogs()">↺ 刷新</button>
+        </div>
+        <div class="log-container" id="log-container">
+          <div style="color:var(--muted)">加载中…</div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /layout -->
+</div><!-- /admin-screen -->
+
+<!-- 确认对话框 -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">确认删除</div>
+    <div class="confirm-desc" id="confirm-desc">此操作不可恢复。</div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirm-ok" onclick="">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── 工具 ──────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  el.textContent = icon + ' ' + msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function esc_html(s) { return esc(s); }
+
+// ── 密码切换 ──
+function togglePwd() {
+  const inp = document.getElementById('pwd-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── 登录 ──────────────────────────────────────────────────
+async function doLogin() {
+  const pwd = document.getElementById('pwd-input').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  if (!pwd) { err.textContent = '请输入密码'; return; }
+
+  btn.disabled = true;
+  btn.querySelector('span').textContent = '验证中…';
+  err.textContent = '';
+
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ password: pwd })
+    }).then(r => r.json());
+
+    if (res.ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-screen').style.display = 'block';
+      loadOverview();
+    } else {
+      err.textContent = '⚠ ' + (res.msg || '密码错误');
+    }
+  } catch {
+    err.textContent = '⚠ 无法连接到服务器';
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = '进入后台';
+  }
+}
+
+// ── 登出 ──
+async function doLogout() {
+  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pwd-input').value = '';
+}
+
+// ── 页面切换 ──────────────────────────────────────────────
+const PAGE_LOADERS = {
+  overview: loadOverview,
+  books: loadBooks,
+  demands: loadDemands,
+  logs: loadLogs,
+};
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  // activate matching nav button
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${name}'`)) {
+      btn.classList.add('active');
+    }
+  });
+  if (PAGE_LOADERS[name]) PAGE_LOADERS[name]();
+}
+
+// ── 概览 ──────────────────────────────────────────────────
+async function loadOverview() {
+  const res = await fetch('/api/stats', {cache:'no-store', credentials:'include'}).then(r => r.json()).catch(() => null);
+  if (!res || !res.ok) { toast('获取统计数据失败', 'error'); return; }
+  document.getElementById('ov-books').textContent    = res.books.total;
+  document.getElementById('ov-demands').textContent  = res.demands.total;
+  document.getElementById('ov-avg').textContent      = res.books.avg_price || '—';
+  document.getElementById('ov-ops').textContent      = res.logs.total;
+  document.getElementById('ov-max').textContent      = res.books.max_price || '—';
+  document.getElementById('ov-min').textContent      = res.books.min_price || '—';
+  document.getElementById('ov-match').textContent    = res.logs.match;
+}
+
+// ── 书籍列表 ──────────────────────────────────────────────
+async function loadBooks() {
+  const res = await fetch('/api/books', {cache:'no-store', credentials:'include'}).then(r => r.json()).catch(() => null);
+  const tbody = document.getElementById('books-tbody');
+  if (!res || !res.ok) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">加载失败，请刷新</td></tr>';
+    return;
+  }
+  document.getElementById('books-count').textContent = res.books.length;
+  if (res.books.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">📭 暂无在售书籍</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res.books.map(b => `
+    <tr>
+      <td><strong>${esc(b.title)}</strong></td>
+      <td>${esc(b.author)}</td>
+      <td class="td-price">¥${esc(b.price)}</td>
+      <td class="td-mono">${esc(b.contact)}</td>
+      <td><span class="status-tag selling">● ${esc(b.status)}</span></td>
+      <td class="td-mono">${esc(b.date)}</td>
+      <td><button class="btn-del" data-book="${encodeURIComponent(JSON.stringify(b))}" onclick="confirmDelete(this)">删除</button></td>
+    </tr>`).join('');
+}
+
+// ── 删除确认 ──
+let pendingDelete = null;
+
+function confirmDelete(btn) {
+  const book = JSON.parse(decodeURIComponent(btn.getAttribute('data-book')));
+  pendingDelete = book;
+  document.getElementById('confirm-title').textContent = '确认删除书籍';
+  document.getElementById('confirm-desc').innerHTML =
+    `即将删除「<strong>${esc(book.title)}</strong>」（${esc(book.author)} · ¥${esc(book.price)}），此操作不可恢复。`;
+  document.getElementById('confirm-overlay').classList.add('show');
+  document.getElementById('confirm-ok').onclick = doDelete;
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+  pendingDelete = null;
+}
+
+async function doDelete() {
+  if (!pendingDelete) return;
+  const book = pendingDelete;
+  closeConfirm();
+  const res = await fetch('/api/books/delete', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(book)
+  }).then(r => r.json()).catch(() => null);
+  if (res && res.ok) {
+    toast(res.msg);
+    loadBooks();
+  } else {
+    toast((res && res.msg) || '删除失败', 'error');
+  }
+}
+
+// ── 添加书籍 ──────────────────────────────────────────────
+async function submitBook() {
+  const title   = document.getElementById('ab-title').value.trim();
+  const author  = document.getElementById('ab-author').value.trim();
+  const price   = document.getElementById('ab-price').value.trim();
+  const contact = document.getElementById('ab-contact').value.trim();
+
+  if (!title || !author || !price || !contact) {
+    toast('请填写所有必填字段', 'error'); return;
+  }
+
+  const res = await fetch('/api/books', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ title, author, price, contact })
+  }).then(r => r.json()).catch(() => null);
+
+  if (res && res.ok) {
+    toast(res.msg);
+    ['ab-title','ab-author','ab-price','ab-contact'].forEach(id =>
+      document.getElementById(id).value = ''
+    );
+  } else {
+    toast((res && res.msg) || '添加失败', 'error');
+  }
+}
+
+// ── 求购需求 ──────────────────────────────────────────────
+async function loadDemands() {
+  const res = await fetch('/api/demands', {cache:'no-store', credentials:'include'}).then(r => r.json()).catch(() => null);
+  const tbody = document.getElementById('demands-tbody');
+  if (!res || !res.ok) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="3">加载失败</td></tr>';
+    return;
+  }
+  document.getElementById('demands-count').textContent = res.demands.length;
+  if (res.demands.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="3">📭 暂无求购需求</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res.demands.map(d => `
+    <tr class="demand-row">
+      <td><strong>${esc(d.title)}</strong></td>
+      <td class="td-mono">${esc(d.contact)}</td>
+      <td class="td-mono">${esc(d.date)}</td>
+    </tr>`).join('');
+}
+
+// ── 匹配 ──────────────────────────────────────────────────
+async function runMatch() {
+  const btn = document.getElementById('match-btn');
+  btn.textContent = '匹配中…';
+  btn.disabled = true;
+
+  const res = await fetch('/api/match', {cache:'no-store', credentials:'include'}).then(r => r.json()).catch(() => null);
+
+  btn.textContent = '⚡ 再次匹配';
+  btn.disabled = false;
+
+  const container = document.getElementById('match-results');
+  if (!res || !res.ok) { toast('匹配请求失败', 'error'); return; }
+
+  const total = res.matched.length + res.unmatched.length;
+  if (total === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:20px 0">暂无求购需求，无法执行匹配</div>';
+    return;
+  }
+
+  toast(`匹配完成：${res.matched.length} 成功 · ${res.unmatched.length} 未匹配`, 'info');
+
+  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:12px;padding:14px 18px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+    匹配成功 <span style="color:var(--accent3);font-weight:500">${res.matched.length}</span> 条 ·
+    暂无匹配 <span style="color:var(--danger);font-weight:500">${res.unmatched.length}</span> 条
+  </div>`;
+
+  for (const m of res.matched) {
+    html += `<div class="match-card">
+      <div class="match-header success">✅ 匹配成功 — ${esc(m.demand_title)}</div>
+      <div class="match-body">
+        <div class="match-row">求购方联系：<strong>${esc(m.demand_contact)}</strong></div>
+        ${m.books.map(b => `<div class="match-row">出售方：<strong>${esc(b.contact)}</strong>  「${esc(b.title)}」定价 ¥${esc(b.price)}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+  for (const u of res.unmatched) {
+    html += `<div class="match-card">
+      <div class="match-header fail">❌ 暂无匹配 — ${esc(u.demand_title)}</div>
+      <div class="match-body">
+        <div class="match-row">求购方：<strong>${esc(u.demand_contact)}</strong></div>
+        <div class="match-row" style="color:var(--danger)">目前平台无此书在售</div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── 每日报告 ──────────────────────────────────────────────
+async function generateReport() {
+  const out = document.getElementById('report-output');
+  out.style.display = 'block';
+  out.textContent = '生成中…';
+
+  const res = await fetch('/api/report', { method: 'POST', credentials: 'include' })
+    .then(r => r.json()).catch(() => null);
+
+  if (res && res.ok) {
+    out.textContent = res.content;
+    toast('报告已生成并保存');
+  } else {
+    out.textContent = '生成失败，请检查服务器连接';
+    toast('报告生成失败', 'error');
+  }
+}
+
+// ── 日志 ──────────────────────────────────────────────────
+async function loadLogs() {
+  const container = document.getElementById('log-container');
+  const res = await fetch('/api/logs', {cache:'no-store', credentials:'include'}).then(r => r.json()).catch(() => null);
+
+  if (!res || !res.ok) {
+    container.innerHTML = '<div style="color:var(--danger)">加载失败，可能需要重新登录</div>';
+    return;
+  }
+
+  if (res.lines.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted)">暂无日志记录</div>';
+    return;
+  }
+
+  container.innerHTML = res.lines.map(line => {
+    // [2026-05-27 12:34:56] ACTION: detail
+    const m = line.match(/^(\[[\d\- :]+\]) ([A-Z_]+):(.*)/);
+    if (!m) return `<div class="log-line"><span style="color:var(--muted)">${esc(line)}</span></div>`;
+
+    const time   = m[1];
+    const action = m[2];
+    const detail = m[3];
+
+    let cls = '';
+    if (action === 'ADD_BOOK')    cls = 'log-add';
+    if (action === 'DELETE_BOOK') cls = 'log-del';
+    if (action === 'MATCH')       cls = 'log-match';
+    if (action === 'REPORT')      cls = 'log-report';
+    if (action === 'ADD_REQUEST') cls = 'log-add';
+
+    return `<div class="log-line">
+      <span class="log-time">${esc(time)}</span>
+      <span class="${cls}">${esc(action)}</span>
+      <span style="color:#6b7280">${esc(detail)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── 初始化：检查登录状态 ──────────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('/api/admin/check', {cache:'no-store', credentials:'include'}).then(r => r.json());
+    if (res.is_admin) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-screen').style.display = 'block';
+      loadOverview();
+    }
+  } catch { /* 保持登录界面 */ }
+})();
+</script>
+</body>
+</html>
